@@ -20,7 +20,7 @@ import telepot
 import RPi.GPIO as GPIO
 
 #텔레그램 봇 토큰과 봇 생성
-my_token = '995744506:AAET7sM5GvDTBlWQHhkaxUuGlHxsva7Zkng'
+my_token = 'my_token'
 bot = telepot.Bot(my_token)
 
 telegram_id = '972674158'

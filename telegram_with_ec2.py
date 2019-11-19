@@ -5,7 +5,7 @@ import os
 
 from telepot.loop import MessageLoop
 
-genietoken = "995744506:AAET7sM5GvDTBlWQHhkaxUuGlHxsva7Zkng"
+genietoken = "bot_token"
 bot = telepot.Bot(genietoken)
 
 InfoMsg = "press the Number\n" \
@@ -14,7 +14,7 @@ InfoMsg = "press the Number\n" \
 status = True
 
 
-STREAM_ARN = 'arn:aws:kinesisvideo:ap-northeast-1:775569069943:stream/mystream/1571636767275'
+STREAM_ARN = 'stream_arn'
 kvs = boto3.client("kinesisvideo","ap-northeast-1")
 #kvs = boto3.client("kinesisvideo")
 # Grab the endpoint from GetDataEndpoint
