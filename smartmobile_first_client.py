@@ -7,7 +7,7 @@ from imutils.video import VideoStream
 from imutils.video import FPS
 from gpiozero import Buzzer
 from time import sleep
-
+import socket
 import numpy as np
 import argparse
 import imutils
@@ -19,6 +19,10 @@ import telepot
 
 import RPi.GPIO as GPIO
 
+port = 5480
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect(("52.78.139.181", port))
+client_socket.send("first".encode())
 #텔레그램 봇 토큰과 봇 생성
 my_token = '995744506:AAET7sM5GvDTBlWQHhkaxUuGlHxsva7Zkng'
 bot = telepot.Bot(my_token)
@@ -82,7 +86,7 @@ people_net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
 face_net = cv2.dnn.readNetFromCaffe("./deploy.prototxt.txt","./res10_300x300_ssd_iter_140000.caffemodel") 
 
 fps = FPS().start()
-vs = VideoStream(src=0).start()
+#vs = VideoStream(src=0).start()
 #USE WebCam
 
 frame = 0
@@ -98,7 +102,7 @@ face_net.setPreferableTarget(cv2.dnn.DNN_TARGET_MYRIAD)
 
 
 #vs = VideoStream(usePiCamera=True).start()
-#vs = cv2.VideoCapture(-1)
+vs = cv2.VideoCapture(-1)
 
 #time.sleep(2.0)
 #fps = FPS().start()
@@ -127,6 +131,7 @@ def imgprocessing_people():
     global msg_object
     global bot
     global telegram_id
+    global client_socket
 
     ROI_EVENT_FLAG = False
     ROI_EVENT_START_TIME = 0
@@ -151,7 +156,7 @@ def imgprocessing_people():
 
 	# grab the frame from the threaded video stream and resize it
 	# to have a maximum width of 400 pixels
-        frame = vs.read()
+        ret, frame = vs.read()
 
         frame = imutils.resize(frame, width=400)
 	# grab the frame dimensions and convert it to a blob
@@ -270,6 +275,7 @@ def imgprocessing_people():
 
         #cv2.putText(frame, label, (startX, y),
         #cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLORS[idx], 2)
+        client_socket.send("send".encode())
         # show the output frame
         cv2.imshow("frame", frame)
         key = cv2.waitKey(1) & 0xFF
