@@ -1,5 +1,5 @@
 # USAGE
-#python3 smartmobile.py --prototxt MobileNetSSD_deploy.prototxt --model MobileNetSSD_deploy.caffemodel
+#python3 smartmobile_first_client.py --prototxt MobileNetSSD_deploy.prototxt --model MobileNetSSD_deploy.caffemodel
 
 
 # import the necessary packages
@@ -19,7 +19,7 @@ import telepot
 
 import RPi.GPIO as GPIO
 
-port = 5480
+port = 8888
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect(("52.78.139.181", port))
 client_socket.send("first".encode())
@@ -27,8 +27,8 @@ client_socket.send("first".encode())
 my_token = '995744506:AAET7sM5GvDTBlWQHhkaxUuGlHxsva7Zkng'
 bot = telepot.Bot(my_token)
 
-telegram_id = '972674158'
-
+telegram_id = '981521515'
+os.system("sudo rfcomm bind rfcomm0 98:D3:91:FD:37:9A")
 #경고 메세지
 msg_face = '뒤집힘 경고'
 msg_object = '관심영역 경고'
@@ -50,16 +50,16 @@ def total():
 
 
 # construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-p", "--prototxt", required=True,
-	help="path to Caffe 'deploy' prototxt file")
-ap.add_argument("-m", "--model", required=True,
-	help="path to Caffe pre-trained model")
-ap.add_argument("-c", "--confidence", type=float, default=0.2,
-	help="minimum probability to filter weak detections")
-ap.add_argument("-u", "--movidius", type=bool, default=0,
-	help="boolean indicating if the Movidius should be used")
-args = vars(ap.parse_args())
+#ap = argparse.ArgumentParser()
+#ap.add_argument("-p", "--prototxt", required=True,
+#	help="path to Caffe 'deploy' prototxt file")
+#ap.add_argument("-m", "--model", required=True,
+#	help="path to Caffe pre-trained model")
+#ap.add_argument("-c", "--confidence", type=float, default=0.2,
+#	help="minimum probability to filter weak detections")
+#ap.add_argument("-u", "--movidius", type=bool, default=0,
+#	help="boolean indicating if the Movidius should be used")
+#args = vars(ap.parse_args())
 
 
 
@@ -82,8 +82,9 @@ CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
 
 # load our serialized model from disk
 print("[INFO] loading model...")
-people_net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
-face_net = cv2.dnn.readNetFromCaffe("./deploy.prototxt.txt","./res10_300x300_ssd_iter_140000.caffemodel") 
+#people_net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
+people_net = cv2.dnn.readNetFromCaffe("/home/pi/infant_accident_prevention_system_development/MobileNetSSD_deploy.prototxt","/home/pi/infant_accident_prevention_system_development/MobileNetSSD_deploy.caffemodel")
+face_net = cv2.dnn.readNetFromCaffe("/home/pi/infant_accident_prevention_system_development/deploy.prototxt.txt","/home/pi/infant_accident_prevention_system_development/res10_300x300_ssd_iter_140000.caffemodel")
 
 fps = FPS().start()
 #vs = VideoStream(src=0).start()
@@ -102,7 +103,7 @@ face_net.setPreferableTarget(cv2.dnn.DNN_TARGET_MYRIAD)
 
 
 #vs = VideoStream(usePiCamera=True).start()
-vs = cv2.VideoCapture(-1)
+vs = cv2.VideoCapture(2, cv2.CAP_V4L)
 
 #time.sleep(2.0)
 #fps = FPS().start()
@@ -158,7 +159,7 @@ def imgprocessing_people():
 	# to have a maximum width of 400 pixels
         ret, frame = vs.read()
 
-        frame = imutils.resize(frame, width=400)
+        #frame = imutils.resize(frame, width=800)
 	# grab the frame dimensions and convert it to a blob
         (h, w) = frame.shape[:2]
 #-----------------------------------------------------------------------------
@@ -178,17 +179,22 @@ def imgprocessing_people():
         line_right_boty = 550
         weight = 10
         cv2.rectangle(frame, (line_left_topx, line_left_topy), (line_right_botx, line_right_boty),(255,255,255), 2)
-
+        ROI_EVENT_FLAG = True
 	# loop over the detections
         for i in np.arange(0, people_detections.shape[2]):
             people_confidence = people_detections[0, 0, i, 2]
+            #print(people_idx)
+            #print(CLASSES[people_idx])
+            people_idx = int(people_detections[0, 0, i, 1])
+            if CLASSES[people_idx] in IGNORE:
+                continue
 
-            if people_confidence > 0.4:
-                people_idx = int(people_detections[0, 0, i, 1])
+            if people_confidence > 0.2:
+                #people_idx = int(people_detections[0, 0, i, 1])
                 #print(people_idx)
                 #print(CLASSES[people_idx])
-                if CLASSES[people_idx] in IGNORE:
-                    continue
+                #if CLASSES[people_idx] in IGNORE:
+                #    continue
 
                 people_box = people_detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (people_startX, people_startY, people_endX, people_endY) = people_box.astype("int")
@@ -221,13 +227,14 @@ def imgprocessing_people():
                     bot.sendMessage(chat_id = telegram_id, text = msg_object)
 
                 if diff_sec >= 5: #관심영역 경고가 5초이상 지속되었을 시 시간에따라 진동 혹은 부저 알림
-                    ROI_now = datetime.datetime.now()
-                    ROI_event_time = ROI_now.replace(hour=10, minute=59, second=0,microsecond=0)
-                    if ROI_now > ROI_event_time: #기준점과 시간 비교
-                        buzzer.off()
-                        bluetoothSerial.write(str("w").encode('utf-8'))
-                    else:
-                        buzzer.on()
+                    #ROI_now = datetime.datetime.now()
+                    #ROI_event_time = ROI_now.replace(hour=10, minute=59, second=0,microsecond=0)
+                    #if ROI_now > ROI_event_time: #기준점과 시간 비교
+                    #    buzzer.off()
+                    #    bluetoothSerial.write(str("w").encode('utf-8'))
+                    #else:
+                    #    buzzer.on()
+                    bluetoothSerial.write(str("w").encode('utf-8'))
 
         else :    #영역 이탈 정상 경우
             ROI_EVENT_START_TIME_FLAG = False
@@ -239,7 +246,7 @@ def imgprocessing_people():
         #for i in range(0, face_detections.shape[2]):
         for i in np.arange(0, face_detections.shape[2]):
             face_confidence = face_detections[0, 0, i, 2]
-            if face_confidence < 0.17:
+            if face_confidence < 0.25:
                 continue
             else:
                 face_num += 1
@@ -260,13 +267,14 @@ def imgprocessing_people():
                 if diff_sec % 2 == 0:
                     bot.sendMessage(chat_id = telegram_id, text = msg_face)
                 if diff_sec >= 5:
-                    FACE_now = datetime.datetime.now()
-                    FACE_event_time = FACE_now.replace(hour=10, minute=59, second=0,microsecond=0)
-                    if FACE_now > FACE_event_time:
-                        buzzer.off()
-                        bluetoothSerial.write(str("w").encode('utf-8'))
-                    else:
-                        buzzer.on()
+                    #FACE_now = datetime.datetime.now()
+                    #FACE_event_time = FACE_now.replace(hour=10, minute=59, second=0,microsecond=0)
+                    #if FACE_now > FACE_event_time:
+                    #    buzzer.off()
+                    #    bluetoothSerial.write(str("w").encode('utf-8'))
+                    #else:
+                    #    buzzer.on()
+                    buzzer.on()
         else:
             FACE_EVENT_START_TIME_FLAG = False
             if not ROI_EVENT_FLAG:

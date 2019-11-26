@@ -14,24 +14,28 @@ first_address = 0
 second_client_socket = 0
 second_address = 0
 
+
 def errorProcessing(socket):
-     print("E: Original Mobile Messaage Time Out. I Will Trun On Alternative Mobile")
+     print("E: Original Mobile Messaage Time Out. I Will Turn On Alternative Mobile")
      socket.send("Turn On".encode())
 
 
 while True:
-
-    for i in range(1,3):
+    clients = [0,0]
+    while clients[0] != 1 or clients[1] != 1:
 
          socket, address = server_socket.accept()
          data = socket.recv(512).decode()
          if data == 'first':
               first_client_socket = socket
-              first_address = adress
+              first_address = address
+              clients[0] = 1
+              print("Main Board Comming")
          else :
               second_client_socket = socket
               second_address = address
-
+              clients[1] = 1
+              print("Alternative Board Comming")
 
     print ("I got a connection")
     first_client_socket.settimeout(10)
@@ -41,10 +45,10 @@ while True:
             data = first_client_socket.recv(512).decode()
             if len(data) == 0:
                  errorProcessing(second_client_socket)
-                 break;
-        except socket.timeout:
+                 break
+        except:
             errorProcessing(second_client_socket)
-            break;
+            break
 
 server_socket.close()
 print("SOCKET closed... END")
